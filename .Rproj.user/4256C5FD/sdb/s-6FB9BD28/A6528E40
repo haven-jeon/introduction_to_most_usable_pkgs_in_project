@@ -1,0 +1,16 @@
+{
+    "contents" : "Most usable packages in real projects\n========================================================\n[빅데이터 커뮤니티](http://www.bicdata.com/bbs/board.php?bo_table=analysis_talk&wr_id=231) 발표자료 소스 \n\n1. ProjectTemplate 패키지\n1. ggplot2 패키지\n1. plyr, data.table 패키지\n1. reshape2 패키지\n1. lubridate 패키지\n1. knitr, markdown 패키지\n\n",
+    "created" : 1359166072073.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3071876119",
+    "id" : "A6528E40",
+    "lastKnownWriteTime" : 1359166146,
+    "path" : "D:/work/bicdata/README.md",
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "source_on_save" : false,
+    "type" : "markdown"
+}
