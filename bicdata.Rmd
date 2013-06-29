@@ -1,84 +1,274 @@
 Most usable packages in real projects
 ========================================================
 
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(plyr)
+library(XML)
 
-![cloud][img1]
+# build a vector of URL pages we'll want to use
+urls <- paste("http://crantastic.org/popcon?page=", 1:10, sep = "")
 
-1. ProjectTemplate 패키지
-1. ggplot2 패키지
-1. plyr, data.table 패키지
+# scrape all the data from the URLs into one big data.frame
+packages.df <- ldply(urls, function(url)readHTMLTable(url)[[1]])
+
+# turn the "Users" column from factor to numeric
+packages.df$Users <- as.numeric(as.character(packages.df$Users))
+
+# sort by decreasing "Users"
+packages.df <- arrange(packages.df, desc(Users))
+
+# print the 50 most used packages
+# head(packages.df$`Package Name`, 50)
+
+
+library(wordcloud)
+
+wordcloud(packages.df$`Package Name`,
+          packages.df$Users,
+          max.words = 50,
+          colors = brewer.pal(9, "Greens")[4:9])
+```
+
+
+
+1. plyr, data.table, sqldf 패키지
 1. reshape2 패키지
-1. lubridate 패키지
+1. lubridate, stringr 패키지
+1. ggplot2 패키지
 1. knitr, markdown 패키지
+1. caret
+1. tm, KoNLP, tau 패키지
 
 
 
-### [ProjectTemplate][protemp]
 
-* 프로젝트에 필요한 일반적인  디렉토리 및 파일 구조 정의
-* 프로젝트에 필요한 패키지 자동 로딩
-* 프로젝트에 필요한 데이터 자동 로딩 
-* 프로젝트에 필요한 데이터 전처리 
 
-```{r init1, echo=FALSE}
-opts_chunk$set(comment=NA, fig.width=5, fig.height=5, warning=FALSE, message=FALSE)
+### [plyr]
+
+* split-combind-apply
+* R에서 가장 직관적이고 강력한 데이터 집계 라이브러리
+* 멀티코어 프로세싱을 손쉽게 이용가능함 
+* aggregate, tapply, by 류의 함수를 대체 가능한 함수 제공 
+
+예)
+
+![split_apply][img2]
+
+
+```{r plyr}
+library(ggplot2)
+library(plyr)
+
+market_price <- read.csv("http://dl.dropbox.com/u/8686172/marketprice.csv", fileEncoding="UTF-8")
+
+
+
+# ggplot(market_price, aes(x=A_NAME, y=A_PRICE, colour=M_TYPE_NAME)) +
+#   geom_boxplot(outlier.size=0) +
+#   stat_summary(aes(group=M_TYPE_NAME),fun.y="mean", geom="line", size=1, alpha=I(0.7))+
+#   opts(axis.text.x=theme_text(angle=90))
+
+ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE) )
+
+```
+
+
+* plyr의 멀티코어 처리는 윈도우에서는 잘 동작하지 않음
+* 하지만 plyr를 사용하지 않은 멀티코어처리는 잘 동작함 
+* foreach 패키지에 종속된 기능이며, 기본 배포판에 속한 parallel 패키지를 이용하고자 한다면 doParallel패키지를 사용해야 된다. 
+* 리눅스에서는 굉장히 쾌적하게 돌아간다(600만건 처리시...). 
+
+
+```{r domc, echo=TRUE,eval=FALSE}
+#멀티코어사용 
+
+
+system.time({
+  a1<-ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE) )
+})
+
+
+#for Linux on my case
+library(doMC)
+registerDoMC()
+
+system.time({
+  a3<- ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE),.parallel=TRUE)
+})
+
+```
+
+
+#### [data.table]
+
+
+
+
+```{r datatable}
+library(data.table)
+
+market_price.dt <- data.table(market_price) #--- (1)
+
+market_price.dt[2,list(M_NAME)] #--- (2) 
+
+market_price[2,"M_NAME",drop=F]
+
+market_price.dt[,list(avg = mean(A_PRICE)), by=list(M_TYPE_NAME, A_NAME)]
+
+
+setkey(market_price.dt, A_NAME)
+market_price.dt['고등어']
+head(market_price.dt)
+setkey(market_price.dt)
+
+
+market_price.dt[A_NAME == '고등어',]
+#market_price.dt['고등어']
+head(market_price.dt)
+
+
+
+```
+
+### [sqldf]
+
+* 데이터 테이블을 조작하는데 SQL을 사용하게 해주는 패키지 
+* DB에 익숙한 사용자에게 강력한 패키지 
+
+```{r sqldf, message=FALSE}
+library(sqldf)
+sqldf("SELECT * FROM market_price LIMIT 5;")
+
+market_price_group_by <- sqldf("SELECT M_TYPE_NAME, A_NAME, avg(A_PRICE) as mean_price FROM market_price GROUP BY M_TYPE_NAME, A_NAME")
+
+
+
 ```
 
 
 
-```{r init, eval=FALSE}
 
 
-library(ProjectTemplate)
-create.project('bicdata')
-setwd("bicdata/")
-load.project()
+### [reshape2]
+
+* 집계 보다는 데이터의 형태를 바꾸는 작업을 수행 
+* ggplot2, plyr의 개발자가 개발, 데이터 철학 공유하고 있음 
+* Tidy Data
+  * 각 변수는 개별의 열(column)으로 존재한다.
+  * 각 관측치는 행(row)를 구성한다.
+  * 각 테이블은 단 하나의 관측기준에 의해서 조직된 데이터를 저장한다.
+* Raw Data -> Tidy Data로의 장점 
+  * Tidy Data에서 다양한 데이터 형태로 변형이 최소의 노력으로 가능해지며 특히 R에서 이런 장점이 두드러 진다. 
+
+
+```{r reshape2}
+
+library(reshape2)
+
+head(iris)
+
+iris.melt <- melt(iris, id="Species", value.name = "cm")
+
+head(iris.melt)
+
+ggplot(iris.melt, aes(Species, cm)) + geom_point(aes(colour=variable)) + scale_color_discrete("Species")
+```
+
+
+```{r reshape3_2, fig.width=12, fig.height=6}
+load("pew.RData")
+head(raw)
+paw <- raw[,-c(8,9,10,11)]
+melted <- melt(paw, measure.vars=c(2,3,4,5,6,7), variable.name="income", value.name="freq")
+
+head(melted)
+tail(melted)
+
+library(ggplot2)
+ggplot(melted, aes(religion,freq)) + geom_bar(aes(fill=income), stat="identity") +
+  theme(axis.text.x=element_text(angle=45))
+
+melted <- ddply(melted, .(religion), mutate, freq_sum=sum(freq))
+
+melted <- ddply(melted, .(religion, income), summarise, freq_precent=freq/freq_sum)
+head(melted)
+
+ggplot(melted, aes(religion,freq_precent)) + geom_bar(aes(fill=income), stat="identity") +
+  theme(axis.text.x=element_text(angle=45))
+```
+
+
+
+### [lubridate], [stringr]
+
+* lubridate
+  * 실무에서 쓰는 다양한 숫자 스트링 포맷에 대한 간편한 변환 제공 
+  * 시간과 날짜에 대한 다양한 연산 제공 
+  * 한글 윈도우 문제...
+* stringr
+  * 문자열 편집에 쓰일 수 있는 다향한 텍스트 핸등링 함수 제공 
+
+
+```{r lub_error, eval=FALSE}
+library(lubridate)
+ 
+as.POSIXct("2012-12-12")
+as.POSIXct("20121212", format="%Y%m%d")
+
+Sys.getlocale("LC_TIME")
+# [1] "Korean_Korea.949"
+ 
+ymd("2013-01-03")
+# 다음에 오류gsub("+", "*", fixed = T, gsub(">", "_e>", num)) : '<ec><98><a4>?<84>|<ec>삤<ed>썑)(?![[:alpha:]]))|((?<h_f_e>2[0-4]|[01]?\d)\D+(?<m_f_e>[0-5]?\d)\D+((?<os_f_s_e>[0-5]?\d\.\d+)|(?<s_f_e>[0-6]?\d))))'에 잘못된 멀티 바이트 문자가 있습니다
+ 
+Sys.setlocale("LC_TIME", "C")
+# [1] "C"
+ymd("2013-01-03")
+# 1 parsed with %Y-%m-%d
+# [1] "2013-01-03 UTC"
+ 
+ 
+ 
+Sys.setlocale("LC_TIME", "Korean_Korea.949")
+format(Sys.time(), "%a %b %d %X %Y %Z")
+# [1] "목 1 03 오후 2:26:21 2013 KST"
+ 
+Sys.setlocale("LC_TIME", "C")
+format(Sys.time(), "%a %b %d %X %Y %Z")
+# [1] "Thu Jan 03 14:26:34 2013 KST"
+```
+
+
+
+```{r lubridate}
+library(lubridate)
+
+x <- c(20090101, "2009-01-02", "2009 01 03", "2009-1-4",
+       "2009-1, 5", "Created on 2009 1 6", "200901 !!! 07")
+y <- ymd(x)
+
+
+y
+
+y + days(1) + hours(6) + minutes(30)
+
+y - months(12)
+```
+
+
+```{r}
+library(stringr)
+
+fruits <- c(
+  "apples and oranges and pears and bananas",
+  "pineapples and mangos and guavas"
+)
+str_split(fruits, " and ")
+str_trim("  String with trailing and leading white space\t")
 
 ```
 
-* data 디렉토리에 수많은 데이터 포맷을 명시할 수 있음 
-  * 예를 들어 sqlite 파일이 포함이 될 경우 특정 테이블만 로딩할지 모두 로딩할지 정할 수 있음 
-  * MySQL, PostGres 또는 ODBC Databases에 접근해 특정 데이터를 자동으로 불러들임 
-  * 특정 디렉토리의 csv파일 혹은 R, RData 와 같은 파일 실행 후 데이터 로딩  
-  
-  
-```{r init2, eval=FALSE}
-#copy titanic to data dir
-titanic <- read.csv("http://dl.dropbox.com/u/8686172/titanic.csv")
-write.csv(titanic, file="data/titanic.csv")
 
-load.project()
-
-#modify munging process
-#modify config file
-
-#load.project()
-
-show.project()
-
-```
-
-* Unit Testing 
-  * 주로 lib 디렉토리의 함수들을 대상 
-  * 함수를 수정하더라도 중요 테스팅을 자동으로 수행하게 함으로써 자신이 만든 R 함수들의 기능을 보장함 
-  
-
-```{r init3, eval=FALSE}
-stub.tests()
-
-#needs to be modified to "test-*.R"
-test.project()
-```
-
-* `logging: on`일 경우 아래와 같은 메시지를 project.log 파일로 저장함
-* 전처리를 위한 munge 이하의 파일을 실행할 시 정보를 로깅하는 용도로 주로 사용 
-
-```{r init4, eval=FALSE}
-# if logging : on 
-warn(logger, "This is warning")
-scan("logs/project.log", what="character")
-
-```
 
 ### [ggplot2]
 
@@ -152,167 +342,6 @@ ggplot(data=diamonds, aes(x=price)) + geom_bar(aes(fill=cut), binwidth=3000, pos
 * [더 많은 예제](http://docs.ggplot2.org/current/)
 
 
-### [plyr], [data.table]
-
-* split-combind-apply
-* R에서 가장 직관적이고 강력한 데이터 집계 라이브러리
-* 멀티코어 프로세싱을 손쉽게 이용가능함 
-* aggregate, tapply, by 류의 함수를 대체 가능한 함수 제공 
-
-예)
-
-![split_apply][img2]
-
-
-```{r plyr}
-library(ggplot2)
-library(plyr)
-
-market_price <- read.csv("http://dl.dropbox.com/u/8686172/marketprice.csv", fileEncoding="UTF-8")
-
-
-
-# ggplot(market_price, aes(x=A_NAME, y=A_PRICE, colour=M_TYPE_NAME)) +
-#   geom_boxplot(outlier.size=0) +
-#   stat_summary(aes(group=M_TYPE_NAME),fun.y="mean", geom="line", size=1, alpha=I(0.7))+
-#   opts(axis.text.x=theme_text(angle=90))
-
-ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE) )
-
-```
-
-```{r domc, echo=TRUE,eval=FALSE}
-#멀티코어사용 
-
-library(doSNOW)
-cl <- makeCluster(c("localhost","localhost"), type = "SOCK")
-registerDoSNOW(cl)
-
-system.time({
-  a1<-ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE) )
-})
-
-system.time({
-  a2<- ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE),.parallel=TRUE)
-})
-
-stopCluster(cl)
-
-
-#for Linux on my case
-library(doMC)
-registerDoMC()
-
-system.time({
-  a3<- ddply(market_price, .(A_NAME, M_TYPE_NAME), summarize, mean_price=mean(A_PRICE),.parallel=TRUE)
-})
-
-```
-
-
-#### [data.table]
-
-
-
-
-```{r datatable}
-library(data.table)
-
-market_price.dt <- data.table(market_price) #--- (1)
-
-market_price.dt[2,list(M_NAME)] #--- (2) 
-
-market_price[2,"M_NAME",drop=F]
-
-market_price.dt[,list(avg = mean(A_PRICE)), by=list(M_TYPE_NAME, A_NAME)]
-
-
-setkey(market_price.dt, A_NAME)
-market_price.dt['고등어']
-head(market_price.dt)
-setkey(market_price.dt)
-
-
-market_price.dt[A_NAME == '고등어',]
-#market_price.dt['고등어']
-head(market_price.dt)
-
-
-
-```
-
-
-### [reshape2]
-
-* 집계 보다는 데이터의 형태를 바꾸는 작업을 수행 
-* ggplot2에서 시각화를 위한 데이터 전처리 부분에서 주로 사용 
-
-```{r reshape2}
-
-library(reshape2)
-
-head(iris)
-
-iris.melt <- melt(iris, id="Species", value.name = "cm")
-
-head(iris.melt)
-
-ggplot(iris.melt, aes(Species, cm)) + geom_point(aes(colour=variable)) + scale_color_discrete("Species")
-```
-
-
-### [lubridate]
-
-* 실무에서 쓰는 다양한 숫자 스트링 포맷에 대한 간편한 변환 제공 
-* 시간과 날짜에 대한 다양한 연산 제공 
-* 한글 윈도우 문제...
-
-```{r lub_error, eval=FALSE}
-library(lubridate)
- 
-as.POSIXct("2012-12-12")
-as.POSIXct("20121212", format="%Y%m%d")
-
-Sys.getlocale("LC_TIME")
-# [1] "Korean_Korea.949"
- 
-ymd("2013-01-03")
-# 다음에 오류gsub("+", "*", fixed = T, gsub(">", "_e>", num)) : '<ec><98><a4>?<84>|<ec>삤<ed>썑)(?![[:alpha:]]))|((?<h_f_e>2[0-4]|[01]?\d)\D+(?<m_f_e>[0-5]?\d)\D+((?<os_f_s_e>[0-5]?\d\.\d+)|(?<s_f_e>[0-6]?\d))))'에 잘못된 멀티 바이트 문자가 있습니다
- 
-Sys.setlocale("LC_TIME", "C")
-# [1] "C"
-ymd("2013-01-03")
-# 1 parsed with %Y-%m-%d
-# [1] "2013-01-03 UTC"
- 
- 
- 
-Sys.setlocale("LC_TIME", "Korean_Korea.949")
-format(Sys.time(), "%a %b %d %X %Y %Z")
-# [1] "목 1 03 오후 2:26:21 2013 KST"
- 
-Sys.setlocale("LC_TIME", "C")
-format(Sys.time(), "%a %b %d %X %Y %Z")
-# [1] "Thu Jan 03 14:26:34 2013 KST"
-```
-
-
-
-```{r lubridate}
-library(lubridate)
-
-x <- c(20090101, "2009-01-02", "2009 01 03", "2009-1-4",
-       "2009-1, 5", "Created on 2009 1 6", "200901 !!! 07")
-y <- ymd(x)
-
-
-y
-
-y + days(1) + hours(6) + minutes(30)
-
-y - months(12)
-```
-
 
 ### [knitr], [markdown]
 
@@ -353,5 +382,9 @@ system("pandoc -o bicdata.docx bicdata.md")
 [lubridate]:http://cran.r-project.org/web/packages/lubridate/index.html
 [knitr]:http://yihui.name/knitr/
 [markdown]:http://cran.r-project.org/web/packages/markdown/index.html
+[stringr]:http://cran.r-project.org/web/packages/stringr/index.html
+
+[sqldf]:http://code.google.com/p/sqldf/
+
 [img1]: packages.png
 [img2]: splitapply.png
