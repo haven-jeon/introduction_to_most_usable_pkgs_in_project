@@ -223,7 +223,7 @@ library(data.table)
 
 market_price.dt <- data.table(market_price)  #--- (1)
 
-market_price.dt[2, list(M_NAME)]  #--- (2)
+market_price.dt[2, list(M_NAME)]  #--- (2) 
 ```
 
 ```
@@ -759,28 +759,34 @@ ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..count..))  #  (2)
 ![plot of chunk ggplot2](figure/ggplot29.png) 
 
 ```r
-ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..density..))
+ggplot(data = diamonds, aes(x = price)) + stat_bin(geom = "line")
 ```
 
 ![plot of chunk ggplot2](figure/ggplot210.png) 
 
 ```r
-ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..ncount..))
+ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..density..))
 ```
 
 ![plot of chunk ggplot2](figure/ggplot211.png) 
 
 ```r
-ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..ndensity..))
+ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..ncount..))
 ```
 
 ![plot of chunk ggplot2](figure/ggplot212.png) 
 
 ```r
-ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..density..)) + ylab("밀도")
+ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..ndensity..))
 ```
 
 ![plot of chunk ggplot2](figure/ggplot213.png) 
+
+```r
+ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..density..)) + ylab("밀도")
+```
+
+![plot of chunk ggplot2](figure/ggplot214.png) 
 
 ```r
 
@@ -790,21 +796,21 @@ ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(y = ..density..)) + ylab(
 ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(fill = cut), binwidth = 3000)
 ```
 
-![plot of chunk ggplot2](figure/ggplot214.png) 
+![plot of chunk ggplot2](figure/ggplot215.png) 
 
 ```r
 ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(fill = cut), binwidth = 3000, 
     position = "dodge")
 ```
 
-![plot of chunk ggplot2](figure/ggplot215.png) 
+![plot of chunk ggplot2](figure/ggplot216.png) 
 
 ```r
 ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(fill = cut), binwidth = 3000, 
     position = "fill")
 ```
 
-![plot of chunk ggplot2](figure/ggplot216.png) 
+![plot of chunk ggplot2](figure/ggplot217.png) 
 
 ```r
 
@@ -813,14 +819,14 @@ ggplot(data = diamonds, aes(x = price)) + geom_bar(binwidth = 3000) + facet_grid
     cut)
 ```
 
-![plot of chunk ggplot2](figure/ggplot217.png) 
+![plot of chunk ggplot2](figure/ggplot218.png) 
 
 ```r
 ggplot(data = diamonds, aes(x = price)) + geom_bar(binwidth = 3000) + facet_wrap(~cut, 
     nrow = 3)
 ```
 
-![plot of chunk ggplot2](figure/ggplot218.png) 
+![plot of chunk ggplot2](figure/ggplot219.png) 
 
 ```r
 
@@ -829,25 +835,25 @@ d <- ggplot(diamonds, aes(price))
 d + stat_bin(geom = "bar")
 ```
 
-![plot of chunk ggplot2](figure/ggplot219.png) 
+![plot of chunk ggplot2](figure/ggplot220.png) 
 
 ```r
 d + stat_bin(geom = "area")
 ```
 
-![plot of chunk ggplot2](figure/ggplot220.png) 
+![plot of chunk ggplot2](figure/ggplot221.png) 
 
 ```r
 d + stat_bin(aes(size = ..ndensity..), geom = "point")
 ```
 
-![plot of chunk ggplot2](figure/ggplot221.png) 
+![plot of chunk ggplot2](figure/ggplot222.png) 
 
 ```r
 d + stat_bin(aes(y = 1, fill = ..density..), geom = "tile")
 ```
 
-![plot of chunk ggplot2](figure/ggplot222.png) 
+![plot of chunk ggplot2](figure/ggplot223.png) 
 
 ```r
 
@@ -859,7 +865,7 @@ ggplot(data = diamonds, aes(x = price)) + geom_bar(aes(fill = cut), binwidth = 3
     theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
 ```
 
-![plot of chunk ggplot2](figure/ggplot223.png) 
+![plot of chunk ggplot2](figure/ggplot224.png) 
 
 
 * [더 많은 예제](http://docs.ggplot2.org/current/)

@@ -306,6 +306,7 @@ p + geom_smooth(aes(group=clarity)) #  (2)
 # geom과 stat 객체 
 ggplot(data=diamonds, aes(x=price)) + geom_bar() #  (1)
 ggplot(data=diamonds, aes(x=price)) + geom_bar(aes(y=..count..)) #  (2)
+ggplot(data=diamonds, aes(x=price)) + stat_bin(geom="line")
 ggplot(data=diamonds, aes(x=price)) + geom_bar(aes(y=..density..))
 ggplot(data=diamonds, aes(x=price)) + geom_bar(aes(y=..ncount..))
 ggplot(data=diamonds, aes(x=price)) + geom_bar(aes(y=..ndensity..))

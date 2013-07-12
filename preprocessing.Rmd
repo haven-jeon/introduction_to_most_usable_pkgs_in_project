@@ -1,0 +1,42 @@
+전처리 
+========================================================
+
+
+
+```{r, warning=FALSE,message=FALSE}
+library(caret)
+set.seed(3456)
+trainIndex <- createDataPartition(iris$Species, p = 0.8, list = FALSE,  times = 1)
+head(trainIndex)
+
+irisTrain <- iris[trainIndex, ]
+irisTest <- iris[-trainIndex, ]
+
+plot(iris[,-5])
+
+bxcx <- BoxCoxTrans(irisTrain$Petal.Length, fudge=0.004)
+
+hist(predict(bxcx, irisTrain$Petal.Length))
+
+mdl <- preProcess(irisTrain[,-5], method=c("BoxCox", "center", "scale", "pca"))
+
+transformed <- predict(mdl, irisTrain[,-5])
+
+head(transformed)
+
+plot(transformed)
+
+nearZeroVar(irisTrain)
+
+
+correlations <- cor(irisTrain[,-5])
+
+library(corrplot)
+corrplot(correlations, order="hclust")
+  
+highCorr <- findCorrelation(correlations, cutoff=.75)
+
+correlations[,highCorr]
+```
+
+
